@@ -1,0 +1,6 @@
+---
+- name: Setup Observability with Prometheus, Grafana, and Node Exporter
+  hosts: automation_controller # add your automation controller hosts or ip
+  become: true
+  roles:
+    - aap-ac-observability

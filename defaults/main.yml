@@ -1,0 +1,18 @@
+---
+# defaults file for aap-ac-observability
+prometheus_image: "docker.io/prom/prometheus:latest"
+grafana_image: "docker.io/grafana/grafana:latest"
+prometheus_container_name: "prometheus"
+grafana_container_name: "grafana"
+prometheus_config_dir: "/opt/prometheus"
+grafana_data_dir: "/opt/grafana"
+node_exporter_version: "1.8.0"
+node_exporter_user: "node_exporter"
+node_exporter_group: "node_exporter"
+node_exporter_config_dir: "/opt/node_exporter"
+#controller_host: "your_controller_host"
+#bearer_token: "your_bearer_token"
+grafana_admin_user: "admin"
+grafana_admin_password: "admin"
+controller_host: "ac01.example.com"
+bearer_token: "jde3bv6I5jJV5K3d4chNF2Hdua1XI5"

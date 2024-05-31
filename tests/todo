@@ -1,0 +1,4 @@
+todo:
+  - add dashboard
+     - https://raw.githubusercontent.com/leoaaraujo/aap-dashboard/main/aap-dash.json
+     - https://www.redhat.com/en/blog/monitoring-ansible-automation-platform-using-user-defined-projects-and-grafana

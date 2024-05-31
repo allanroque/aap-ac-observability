@@ -1,0 +1,141 @@
+---
+# tasks file for aap-ac-observability
+- name: Create directories for Prometheus and Grafana
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ prometheus_config_dir }}"
+    - "{{ grafana_data_dir }}"
+    - "{{ node_exporter_config_dir }}"
+
+- name: Ensure Grafana data directory has correct permissions
+  file:
+    path: "{{ grafana_data_dir }}"
+    state: directory
+    owner: 472
+    group: 472
+    mode: '0755'
+
+- name: Create Prometheus configuration file
+  ansible.builtin.template:
+    src: templates/prometheus.yml.j2
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+
+- name: Run Prometheus container
+  containers.podman.podman_container:
+    name: "{{ prometheus_container_name }}"
+    image: "{{ prometheus_image }}"
+    state: started
+    restart_policy: always
+    volumes:
+      - "{{ prometheus_config_dir }}:/etc/prometheus"
+    ports:
+      - "9090:9090"
+
+- name: Run Grafana container
+  containers.podman.podman_container:
+    name: "{{ grafana_container_name }}"
+    image: "{{ grafana_image }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - "{{ grafana_data_dir }}:/var/lib/grafana:z"
+    env:
+      GF_SECURITY_ADMIN_USER: "{{ grafana_admin_user }}"
+      GF_SECURITY_ADMIN_PASSWORD: "{{ grafana_admin_password }}"
+
+- name: Create node_exporter user
+  ansible.builtin.user:
+    name: "{{ node_exporter_user }}"
+    shell: /sbin/nologin
+
+- name: Create node_exporter group
+  ansible.builtin.group:
+    name: "{{ node_exporter_group }}"
+
+- name: Copy Node Exporter
+  ansible.builtin.copy:
+    src: files/node_exporter-1.8.0.linux-amd64.tar.gz
+    dest: "{{ node_exporter_config_dir }}/node_exporter.tar.gz"
+
+- name: Extract Node Exporter
+  ansible.builtin.unarchive:
+    src: "{{ node_exporter_config_dir }}/node_exporter.tar.gz"
+    dest: "/usr/local/bin/"
+    remote_src: yes
+    extra_opts: "--strip-components=1"
+
+- name: Set permissions for node_exporter
+  ansible.builtin.file:
+    path: "/usr/local/bin/node_exporter"
+    owner: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_group }}"
+    mode: '0755'
+
+- name: Create Node Exporter systemd service
+  ansible.builtin.template:
+    src: templates/node_exporter.service.j2
+    dest: /etc/systemd/system/node_exporter.service
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Start and enable Node Exporter
+  ansible.builtin.systemd:
+    name: node_exporter
+    enabled: true
+    state: started
+
+- name: Open port 9090 for Prometheus
+  firewalld:
+    port: 9090/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  ignore_errors: true
+
+- name: Open port 3000 for Grafana
+  firewalld:
+    port: 3000/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  ignore_errors: true
+
+- name: Open port 9100 for Node Exporter
+  firewalld:
+    port: 9100/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  ignore_errors: true
+
+- name: Wait for Grafana to be available
+  uri:
+    url: "{{ grafana_url }}/api/health"
+    status_code: 200
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 30
+  delay: 10
+
+#- name: Import Grafana dashboard
+#  uri:
+#    url: "{{ grafana_url }}/api/dashboards/db"
+#    method: POST
+#    user: "{{ grafana_admin_user }}"
+#    password: "{{ grafana_admin_password }}"
+#    force_basic_auth: yes
+#    headers:
+#      Content-Type: "application/json"
+#    body: "{{ lookup('file', dashboard_file) }}"
+#    status_code: 200
+#    validate_certs: no
