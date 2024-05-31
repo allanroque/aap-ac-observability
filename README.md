@@ -17,13 +17,13 @@ Role Variables
 These are the default variables defined in `defaults/main.yml`:
 
 ```yaml
-prometheus_image: "prom/prometheus:latest"
-grafana_image: "grafana/grafana:latest"
+prometheus_image: "docker.io/prom/prometheus:latest"
+grafana_image: "docker.io/grafana/grafana:latest"
 prometheus_container_name: "prometheus"
 grafana_container_name: "grafana"
 prometheus_config_dir: "/opt/prometheus"
 grafana_data_dir: "/opt/grafana"
-node_exporter_version: "1.3.1"
+node_exporter_version: "1.8.1"
 node_exporter_user: "node_exporter"
 node_exporter_group: "node_exporter"
 node_exporter_config_dir: "/opt/node_exporter"
@@ -57,7 +57,7 @@ dashboard_file: "files/dashboard.json"
 Dependencies
 ------------
 
-None.
+- Collection containers.podman
 
 Example Playbook
 ----------------
